@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field, validator, ConfigDict, HttpUrl
+from pydantic import BaseModel, Field, field_validator, ConfigDict, ValidationInfo
 from datetime import time, datetime
-from typing import Optional, Any
+from typing import Optional
 
 
 class ClinicBase(BaseModel):
@@ -20,10 +20,12 @@ class ClinicBase(BaseModel):
     description: str | None = Field(None, description="Описание клиники")
     is_active: bool = Field(default=True, description="Активна ли клиника")
 
-    @validator('start_time', 'end_time')
-    def validate_working_hours(cls, v: Optional[time], values: dict[str, Any]) -> Optional[time]:
+    @field_validator('start_time', 'end_time')
+    @classmethod
+    def validate_working_hours(cls, v: Optional[time], info: ValidationInfo) -> Optional[time]:
         """Валидация времени работы."""
-        is_24_7 = values.get('is_24_7', False)
+        data = info.data
+        is_24_7 = data.get('is_24_7', False)
 
         if is_24_7 and v is not None:
             raise ValueError("Время работы не должно указываться для круглосуточной клиники")
@@ -33,18 +35,21 @@ class ClinicBase(BaseModel):
 
         return v
 
-    @validator('end_time')
-    def validate_end_time(cls, v: Optional[time], values: dict[str, Any]) -> Optional[time]:
+    @field_validator('end_time')
+    @classmethod
+    def validate_end_time(cls, v: Optional[time], info: ValidationInfo) -> Optional[time]:
         """Валидация что время окончания после времени начала."""
-        start_time = values.get('start_time')
-        is_24_7 = values.get('is_24_7', False)
+        data = info.data
+        start_time = data.get('start_time')
+        is_24_7 = data.get('is_24_7', False)
 
         if not is_24_7 and start_time and v and v <= start_time:
             raise ValueError("Время окончания должно быть после времени начала")
 
         return v
 
-    @validator('map_url')
+    @field_validator('map_url')
+    @classmethod
     def validate_map_url(cls, v: Optional[str]) -> Optional[str]:
         """Валидация ссылки на карту."""
         if v and not v.startswith(('http://', 'https://', 'yandexmaps://', 'yandexnavi://')):

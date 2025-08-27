@@ -1,6 +1,6 @@
-from pydantic import BaseModel, Field, validator, ConfigDict, EmailStr
+from pydantic import BaseModel, Field, field_validator, ConfigDict, EmailStr, ValidationInfo
 from datetime import datetime, date
-from typing import Optional, List, Any
+from typing import Optional, List
 from enum import Enum
 
 
@@ -27,7 +27,8 @@ class UserBase(BaseModel):
     phone_number: Optional[str] = Field(None, max_length=20, description="Номер телефона")
     is_active: bool = Field(default=True, description="Активен ли пользователь")
 
-    @validator('phone_number')
+    @field_validator('phone_number')
+    @classmethod
     def validate_phone_number(cls, v: Optional[str]) -> Optional[str]:
         """Валидация номера телефона."""
         if v is not None:
@@ -46,7 +47,8 @@ class ClinicStaffBase(UserBase):
     specialization: Optional[str] = Field(None, max_length=100, description="Специализация")
     license_number: Optional[str] = Field(None, max_length=50, description="Номер лицензии")
 
-    @validator('role')
+    @field_validator('role')
+    @classmethod
     def validate_staff_role(cls, v: UserRole) -> UserRole:
         """Валидация роли для персонала."""
         if v == UserRole.CLIENT:
@@ -58,7 +60,8 @@ class ClinicStaffCreate(ClinicStaffBase):
     """Схема для создания персонала клиники."""
     password: str = Field(..., min_length=6, description="Пароль")
 
-    @validator('password')
+    @field_validator('password')
+    @classmethod
     def validate_password(cls, v: str) -> str:
         """Валидация пароля."""
         if len(v) < 6:
@@ -79,7 +82,8 @@ class ClinicStaffUpdate(BaseModel):
     specialization: Optional[str] = Field(None, max_length=100, description="Специализация")
     license_number: Optional[str] = Field(None, max_length=50, description="Номер лицензии")
 
-    @validator('role')
+    @field_validator('role')
+    @classmethod
     def validate_staff_role(cls, v: Optional[UserRole]) -> Optional[UserRole]:
         """Валидация роли для персонала."""
         if v == UserRole.CLIENT:
@@ -97,7 +101,8 @@ class ClientBase(UserBase):
     allergies: Optional[List[str]] = Field(None, description="Аллергии")
     chronic_diseases: Optional[List[str]] = Field(None, description="Хронические заболевания")
 
-    @validator('blood_type')
+    @field_validator('blood_type')
+    @classmethod
     def validate_blood_type(cls, v: Optional[str]) -> Optional[str]:
         """Валидация группы крови."""
         if v is not None:
@@ -106,7 +111,8 @@ class ClientBase(UserBase):
                 raise ValueError("Некорректная группа крови")
         return v
 
-    @validator('date_of_birth')
+    @field_validator('date_of_birth')
+    @classmethod
     def validate_date_of_birth(cls, v: Optional[date]) -> Optional[date]:
         """Валидация даты рождения."""
         if v is not None:
@@ -122,7 +128,8 @@ class ClientCreate(ClientBase):
     """Схема для создания клиента."""
     password: str = Field(..., min_length=6, description="Пароль")
 
-    @validator('password')
+    @field_validator('password')
+    @classmethod
     def validate_password(cls, v: str) -> str:
         """Валидация пароля."""
         if len(v) < 6:
@@ -155,8 +162,8 @@ class ClinicStaffResponse(ClinicStaffBase):
     id: int
     status: UserStatus
     created_at: datetime
-    updated_at: Optional[datetime]
-    last_login: Optional[datetime]
+    updated_at: Optional[datetime] = None
+    last_login: Optional[datetime] = None
 
 
 class ClientResponse(ClientBase):
@@ -167,8 +174,8 @@ class ClientResponse(ClientBase):
     role: UserRole = UserRole.CLIENT
     status: UserStatus
     created_at: datetime
-    updated_at: Optional[datetime]
-    last_login: Optional[datetime]
+    updated_at: Optional[datetime] = None
+    last_login: Optional[datetime] = None
 
 
 # Схемы для аутентификации
@@ -190,7 +197,8 @@ class PasswordChange(BaseModel):
     current_password: str
     new_password: str
 
-    @validator('new_password')
+    @field_validator('new_password')
+    @classmethod
     def validate_new_password(cls, v: str) -> str:
         """Валидация нового пароля."""
         if len(v) < 6:
