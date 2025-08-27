@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Главная - Ветеринарная клиника "Друг"{% endblock %}
+
+{% block content %}
+  <!-- Hero Section -->
+  {% include "hero.html" %}
+
+  <!-- Clinic Section -->
+  {% include "indexClinic.html" %}
+
+  <!-- Clinic Doctors Section -->
+  {% include "indexDoctors.html" %}
+
+  <!-- Services -->
+  <section id="services" class="py-5">
+    <div class="container py-5">
+      <div class="text-center mb-5">
+        <h2 class="display-5 fw-bold text-green mb-3">Наши услуги</h2>
+        <p class="lead text-muted">Полный спектр ветеринарных услуг для ваших питомцев</p>
+      </div>
+
+      <div class="row g-4" id="services-container">
+        <!-- Services will be loaded by JavaScript -->
+      </div>
+    </div>
+  </section>
+
+  <!-- Reviews -->
+  <section id="reviews" class="py-5">
+    <div class="container py-5">
+      <div class="text-center mb-5">
+        <h2 class="display-5 fw-bold text-green mb-3">Отзывы клиентов</h2>
+        <p class="lead text-muted">Что говорят о нас владельцы питомцев</p>
+      </div>
+
+      <div class="row g-4" id="reviews-container">
+        <!-- Reviews will be loaded by JavaScript -->
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-5 cta-section text-white">
+    <div class="container py-5">
+      <div class="row align-items-center">
+        <div class="col-lg-8">
+          <h3 class="fw-bold mb-3">Запишитесь на прием прямо сейчас!</h3>
+          <p class="lead mb-0">Оставьте заявку и мы перезвоним вам в течение 15 минут</p>
+        </div>
+        <div class="col-lg-4 text-lg-end">
+          <button class="btn btn-light btn-lg rounded-pill px-4">
+            <i class="bi bi-telephone-outbound me-2"></i>Записаться
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+{% endblock %}
