@@ -1,4 +1,5 @@
 import os
+import sys
 from typing import Optional
 from pydantic import PostgresDsn, field_validator, ValidationInfo
 from pydantic_settings import BaseSettings
@@ -27,7 +28,7 @@ class Settings(BaseSettings):
     DATABASE_URL: Optional[PostgresDsn] = None
 
     # JWT настройки
-    SECRET_KEY: str = "your-secret-key-here"  # Замените в продакшене
+    SECRET_KEY: str = "your-secret-key-here"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
@@ -49,14 +50,7 @@ class Settings(BaseSettings):
         else:
             db_name = values.get("DB_NAME")
 
-        return str(PostgresDsn.build(
-            scheme="postgresql+asyncpg",
-            user=values.get("DB_USER"),
-            password=values.get("DB_PASSWORD"),
-            host=values.get("DB_HOST"),
-            port=str(values.get("DB_PORT")),
-            path=f"/{db_name}",
-        ))
+        return f"postgresql+asyncpg://{values.get('DB_USER')}:{values.get('DB_PASSWORD')}@{values.get('DB_HOST')}:{values.get('DB_PORT')}/{db_name}"
 
     @field_validator("DB_ECHO")
     @classmethod
@@ -72,7 +66,7 @@ class Settings(BaseSettings):
 
     @field_validator("DEBUG")
     @classmethod
-    def set_debug_based_on_env(cls, info: ValidationInfo) -> bool:
+    def set_debug_based_on_env(cls, v: bool, info: ValidationInfo) -> bool:
         """Устанавливает debug на основе окружения."""
         values = info.data
         env = values.get("ENV")
@@ -80,7 +74,7 @@ class Settings(BaseSettings):
             return True
         elif env == "testing":
             return False
-        return False
+        return v
 
 
 class DevelopmentConfig(Settings):
@@ -90,7 +84,10 @@ class DevelopmentConfig(Settings):
         env_prefix = "DEV_"
 
     def __init__(self, **kwargs):
-        super().__init__(ENV="development", DEBUG=True, DB_ECHO=True, **kwargs)
+        kwargs.setdefault('ENV', 'development')
+        kwargs.setdefault('DEBUG', True)
+        kwargs.setdefault('DB_ECHO', True)
+        super().__init__(**kwargs)
 
 
 class TestingConfig(Settings):
@@ -100,7 +97,10 @@ class TestingConfig(Settings):
         env_prefix = "TEST_"
 
     def __init__(self, **kwargs):
-        super().__init__(ENV="testing", DEBUG=False, DB_ECHO=False, **kwargs)
+        kwargs.setdefault('ENV', 'testing')
+        kwargs.setdefault('DEBUG', False)
+        kwargs.setdefault('DB_ECHO', False)
+        super().__init__(**kwargs)
 
 
 class ProductionConfig(Settings):
@@ -110,16 +110,28 @@ class ProductionConfig(Settings):
         env_prefix = "PROD_"
 
     def __init__(self, **kwargs):
-        super().__init__(ENV="production", DEBUG=False, DB_ECHO=False, **kwargs)
+        kwargs.setdefault('ENV', 'production')
+        kwargs.setdefault('DEBUG', False)
+        kwargs.setdefault('DB_ECHO', False)
+        super().__init__(**kwargs)
 
 
-def get_config() -> Settings:
+def get_config(env: Optional[str] = None) -> Settings:
     """Возвращает конфигурацию в зависимости от окружения."""
-    env = os.getenv("ENV", "development").lower()
+    if env is None:
+        # Сначала проверяем аргументы командной строки
+        if len(sys.argv) > 1:
+            env = sys.argv[1].lower()
+        # Затем переменные окружения
+        else:
+            env = os.getenv("ENV", "development").lower()
 
     config_map = {
+        "dev": DevelopmentConfig,
         "development": DevelopmentConfig,
+        "test": TestingConfig,
         "testing": TestingConfig,
+        "prod": ProductionConfig,
         "production": ProductionConfig,
     }
 
@@ -127,5 +139,11 @@ def get_config() -> Settings:
     return config_class()
 
 
-# Глобальный экземпляр конфигурации
-config = get_config()
+# Глобальный экземпляр конфигурации (будет создан при первом импорте)
+config = None
+
+def init_config(env: Optional[str] = None):
+    """Инициализирует конфигурацию (вызывается явно)."""
+    global config
+    config = get_config(env)
+    return config
